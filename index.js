@@ -1,5 +1,6 @@
-const express = require('express');
-const neo4j = require('neo4j-driver');
+const express = require('express')
+const neo4j = require('neo4j-driver')
+const { v4: uuidv4 } = require('uuid')
 
 const app = express();
 const port = 3000;
@@ -20,7 +21,7 @@ app.get('/', async (req, res) => {
   `
   try {
     const result = await session.run(query)
-    res.json(result.records.map(record => record.get('t').properties));
+    res.status(200).json(result.records.map(record => record.get('t').properties))
   } catch (error) {
     console.error(error);
     res.status(500).send('Error');
@@ -32,13 +33,14 @@ app.get('/', async (req, res) => {
 app.post('/', async (req, res) => {
   const session = driver.session()
   const query = `
-    CREATE (t:Todo {title: $title, description: $description, completed: $completed})
+    CREATE (t:Todo {id: $id, title: $title, description: $description, completed: $completed})
     RETURN t
   `
   const params = {
+    id: uuidv4(),
     title: req.body.title,
     description: req.body.description,
-    completed: false 
+    completed: false
   }
 
   try {
@@ -51,7 +53,49 @@ app.post('/', async (req, res) => {
   } finally {
     await session.close()
   }
-});
+})
+
+app.put('/', async (req, res) => {
+  const session = driver.session()
+  const query = `
+    CREATE (t:Todo {title: $title, description: $description, completed: $completed})
+    RETURN t
+  `
+  const params = {
+    title: req.body.title,
+    description: req.body.description,
+    completed: false
+  }
+
+  try {
+    const result = await session.run(query, params)
+    console.log(result)
+    res.json(result.records.map(record => record.get('t').properties))
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error')
+  } finally {
+    await session.close()
+  }
+})
+
+app.delete('/', async (req, res) => {
+  const session = driver.session()
+  const query = `
+    MATCH (t: Todo) DELETE t
+  `
+  try {
+    const result = await session.run(query)
+    res.json(`Deleted ${result.summary.counters.nodesDeleted} nodes`)
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error')
+  } finally {
+    await session.close()
+  }
+})
+
+
 
 app.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`);
