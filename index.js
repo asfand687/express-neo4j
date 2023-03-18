@@ -1,13 +1,14 @@
 const express = require('express')
 const neo4j = require('neo4j-driver')
 const { v4: uuidv4 } = require('uuid')
+const dotenv = require("dotenv").config()
 
 const app = express();
 const port = 3000;
 
 const driver = neo4j.driver(
-  'bolt://localhost:7687',
-  neo4j.auth.basic('neo4j', 'C@det687')
+  process.env.NEO4J_URL,
+  neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
 );
 
 app.use(express.json({extended: true}))
