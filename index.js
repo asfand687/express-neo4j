@@ -6,14 +6,17 @@ const dotenv = require("dotenv").config()
 const app = express();
 const port = 3000;
 
+// Initialize the database
 const driver = neo4j.driver(
   process.env.NEO4J_URL,
   neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
 )
 
+// Middlewares
 app.use(express.json({extended: true}))
 app.use(express.urlencoded({extended: true}))
 
+// Get all docs
 app.get('/', async (req, res) => {
   const session = driver.session()
   const query = `
@@ -31,6 +34,7 @@ app.get('/', async (req, res) => {
   }
 })
 
+// Get single doc
 app.get('/:id', async (req, res) => {
   const session = driver.session()
   const id = req.params.id
@@ -49,6 +53,7 @@ app.get('/:id', async (req, res) => {
   }
 })
 
+// Create Doc
 app.post('/', async (req, res) => {
   const session = driver.session()
   const query = `
@@ -73,6 +78,7 @@ app.post('/', async (req, res) => {
   }
 })
 
+// Update Doc
 app.put('/:id', async (req, res) => {
   const session = driver.session()
 
@@ -90,6 +96,7 @@ app.put('/:id', async (req, res) => {
   if (completed) {
     properties.completed = completed;
   }
+
   const query = `
     MATCH (t:Todo {id: $id}) SET t += $properties RETURN t
   `
@@ -110,6 +117,7 @@ app.put('/:id', async (req, res) => {
   }
 })
 
+// Delete doc
 app.delete('/:id', async (req, res) => {
   const { id } = req.params
   const session = driver.session()
@@ -127,8 +135,6 @@ app.delete('/:id', async (req, res) => {
     await session.close()
   }
 })
-
-
 
 app.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`)
