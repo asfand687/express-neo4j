@@ -9,7 +9,7 @@ const port = 3000;
 const driver = neo4j.driver(
   process.env.NEO4J_URL,
   neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-);
+)
 
 app.use(express.json({extended: true}))
 app.use(express.urlencoded({extended: true}))
@@ -24,12 +24,12 @@ app.get('/', async (req, res) => {
     const result = await session.run(query)
     res.status(200).json(result.records.map(record => record.get('t').properties))
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Error');
+    console.error(error)
+    res.status(500).send('Error')
   } finally {
-    await session.close();
+    await session.close()
   }
-});
+})
 
 app.post('/', async (req, res) => {
   const session = driver.session()
@@ -46,7 +46,6 @@ app.post('/', async (req, res) => {
 
   try {
     const result = await session.run(query, params)
-    console.log(result)
     res.json(result.records.map(record => record.get('t').properties))
   } catch (error) {
     console.error(error)
@@ -56,22 +55,35 @@ app.post('/', async (req, res) => {
   }
 })
 
-app.put('/', async (req, res) => {
+app.put('/:id', async (req, res) => {
   const session = driver.session()
+
+  const id = req.params.id;
+  const { title, description, completed } = req.body;
+
+  const properties = { id }
+
+  if (title) {
+    properties.title = title;
+  }
+  if (description) {
+    properties.description = description;
+  }
+  if (completed) {
+    properties.completed = completed;
+  }
   const query = `
-    CREATE (t:Todo {title: $title, description: $description, completed: $completed})
-    RETURN t
+    MATCH (t:Todo {id: $id}) SET t += $properties RETURN t
   `
+
   const params = {
-    title: req.body.title,
-    description: req.body.description,
-    completed: false
+    id,
+    properties
   }
 
   try {
     const result = await session.run(query, params)
-    console.log(result)
-    res.json(result.records.map(record => record.get('t').properties))
+    res.json(result.records[0].get('t').properties)
   } catch (error) {
     console.error(error)
     res.status(500).send('Error')
@@ -80,14 +92,16 @@ app.put('/', async (req, res) => {
   }
 })
 
-app.delete('/', async (req, res) => {
+app.delete('/:id', async (req, res) => {
+  const { id } = req.params
   const session = driver.session()
   const query = `
-    MATCH (t: Todo) DELETE t
+    MATCH (t: Todo {id: $id}) DELETE t RETURN count(t)
   `
   try {
-    const result = await session.run(query)
-    res.json(`Deleted ${result.summary.counters.nodesDeleted} nodes`)
+    const result = await session.run(query, { id })
+    console.log(result)
+    res.json(`${result.records[0].get('count(t)')} document(s) deleted`)
   } catch (error) {
     console.error(error)
     res.status(500).send('Error')
@@ -99,5 +113,5 @@ app.delete('/', async (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`);
-});
+  console.log(`App listening at http://localhost:${port}`)
+})
