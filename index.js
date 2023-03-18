@@ -31,6 +31,24 @@ app.get('/', async (req, res) => {
   }
 })
 
+app.get('/:id', async (req, res) => {
+  const session = driver.session()
+  const id = req.params.id
+  const query = `
+    MATCH (t:Todo {id: $id})
+    RETURN t
+  `
+  try {
+    const result = await session.run(query, { id })
+    res.status(200).json(result.records.map(record => record.get('t').properties))
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error')
+  } finally {
+    await session.close()
+  }
+})
+
 app.post('/', async (req, res) => {
   const session = driver.session()
   const query = `
